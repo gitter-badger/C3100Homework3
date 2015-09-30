@@ -1,51 +1,121 @@
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <string.h>
 
-int main (int argc, char * argsp[])
+#define MAX_LINE		512 /* 512 chars per line, per command, should be enough. */
+#define MAX_COMMANDS	5 /* size of history */
+// Prototypes
+int Setup(char inputBuffer[], char *args[],int *background);
+
+int command_count = 0;
+
+int main(void)
 {
-	int max =512;
-	while(1)
-	{
+	char inputBuffer[MAX_LINE]; 	/* buffer to hold the command entered */
+	int background;             	/* equals 1 if a command is followed by '&' */
+	char *args[MAX_LINE/2 + 1];		/* command line (of 512) has max of 40 arguments */
+	int status;           			/* result from execvp system call*/
+	int shouldrun = 1;
+	pid_t child;            		/* process id of the child process */
+	
+	int i, upper;
+	/* Program terminates normally inside Setup */
+    while (shouldrun)
+	{            		
+		background = 0;
 		
-		printf("mysh> ");
-		char * input = (char *)malloc(max);
-		fgets(input,max,stdin);
-		if(input[0]=='\0')
+		shouldrun = Setup(inputBuffer,args,&background);       /* get next command */
+		if (strncmp(inputBuffer, "exit", 4) == 0)
+			return 0;
+				
+		// 1) Fork child process using fork()
+		if (shouldrun) 
 		{
-			printf("There was no input");
+			child = fork();          /* creates a duplicate process! */
+					// 2) the child process invoke execvp()
+					//
+					//
+					//
+					//
+					//
+					//
+					//
 		}
-		else
-		{
-			input=parse(input);
-		}
-		printf("Your input was %s\n",input);
-		printf("Output %d\n",strcmp(input,"exit"));
-		if(strcmp(input,"exit")>0)
-		{
-			printf("I got here");
-			exit(0);
-		}
-		free(input);
-	}
-	exit(0);
+    }// end of while 
+	
+	return 0;
 }
-char * parse (char * input)
+
+/** 
+ * The Setup function below will not return any value, but it will just: read
+ * in the next command line; separate it into distinct arguments (using blanks as
+ * delimiters), and set the args array entries to point to the beginning of what
+ * will become null-terminated, C-style strings. 
+ */
+int Setup(char inputBuffer[], char *args[],int *background)
 {
-	char c, temp[512];
-	int i,ctr=0;
-	for(i=0;i<512;i++)
+	int length,			/* # of characters in the command line */
+		i,				/* loop index for accessing inputBuffer array */
+		start,			/* index where beginning of next command parameter is */
+		ct,				/* index of where to place the next parameter into args[] */
+		command_number;	/* index of requested command number */
+
+	ct = 0;
+
+	/* read what the user enters on the command line */
+	do 
 	{
-		if(input[i]==' ')
-		{ 
-			break;
-		}
-		else
-		{
-			temp[ctr++]=input[i];	
-		}	
+		printf("mysh>");
+		fflush(stdout);
+		length = read(STDIN_FILENO,inputBuffer,MAX_LINE); 
 	}
-	temp[ctr]='\0';
-	return &temp;
-}
+	while (inputBuffer[0] == '\n'); /* swallow newline characters */
+
+	/**
+	 *  0 is the system predefined file descriptor for stdin (standard input),
+	 *  which is the user's screen in this case. inputBuffer by itself is the
+	 *  same as &inputBuffer[0], i.e. the starting address of where to store
+	 *  the command that is read, and length holds the number of characters
+	 *  read in. inputBuffer is not a null terminated C-string. 
+	 */
+
+
+	/** 
+	 * the <control><d> signal interrupted the read system call 
+	 * if the process is in the read() system call, read returns -1
+	 * However, if this occurs, errno is set to EINTR. We can check this  value
+	 * and disregard the -1 value 
+	 */
+	if ( (length < 0) && (errno != EINTR) ) 
+	{
+		perror("error reading the command");
+		exit(-1);           /* terminate with error code of -1 */
+	}
+
+	/**
+	 * Parse the contents of inputBuffer
+	 */
+	for (i=0;i<length;i++) 
+	{ 
+		/* examine every character in the inputBuffer */
+
+
+
+
+	}    /* end of for */
+
+	/**
+	 * If we get &, don't enter it in the args array
+	 */
+
+	if (*background)
+		args[--ct] = NULL;
+
+	args[ct] = NULL; /* just in case the input line was > 512 */
+
+	return 1;
+
+} /* end of Setup routine */
